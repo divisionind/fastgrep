@@ -125,7 +125,5 @@ int main(int argc, char* argv[]) {
         pthread_join(threads[i], NULL);
     }
     fifo_free(&g_fifo);
-
-    printf("Done.\n");
     return 0;
 }
