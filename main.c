@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <malloc.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "fifo.h"
 
@@ -98,6 +99,7 @@ int main(int argc, char* argv[]) {
     char* dir = realpath(potentialDir, NULL);
     if (dir == NULL) {
         printf("invalid directory: %s\n", potentialDir);
+        return 1;
     }
 
     printf("Searching \"%s\"...\n", dir);
