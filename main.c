@@ -13,7 +13,6 @@
 #include "fifo.h"
 
 #define FIFO_SIZE 512
-#define SEARCH_THREADS 11
 #define MAX_OPEN_DESCRIPTORS 15
 
 typedef struct {
@@ -32,7 +31,7 @@ void* task_search(void* arg) {
     const char* query = context->query;
     char* filename;
 
-    do {
+    while (!fifo->closed) {
         if (fifo_get(fifo, &filename)) {
             continue;
         }
@@ -57,15 +56,13 @@ void* task_search(void* arg) {
         }
 
         free(filename);
-    } while (!fifo->closed);
+    }
 
     return NULL;
 }
 
 int task_load_file_entry(const char *filename, const struct stat *info, int flag, struct FTW *pathInfo) {
     if (flag == FTW_F) {
-        // entry was a file, add it
-
         // first create a copy of the filename string as it will be cleaned on function proceed
         unsigned long fileNameLen = strlen(filename) + 1;
         char* fileNameCopy = malloc(fileNameLen);    // TODO maybe reduce malloc's here? test speed vs direct cpy to buffer
@@ -92,13 +89,22 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // init fifo
-    fifo_create(&g_fifo, FIFO_SIZE, sizeof(char*));
+    if (fifo_create(&g_fifo, FIFO_SIZE, sizeof(char*))) {
+        fprintf(stderr, "insufficient memory or other resources\n");
+        return 1;
+    }
 
+    // resolve dir from args
     char* potentialDir = argc >= 3 ? argv[2] : ".";
     char* dir = realpath(potentialDir, NULL);
     if (dir == NULL) {
-        printf("invalid directory: %s\n", potentialDir);
+        fprintf(stderr, "invalid directory: %s\n", potentialDir);
+        return 1;
+    }
+
+    long searchThreads = sysconf(_SC_NPROCESSORS_ONLN) - 1;
+    if (searchThreads < 1) {
+        fprintf(stderr, "invalid processor configuration\n");
         return 1;
     }
 
@@ -112,8 +118,8 @@ int main(int argc, char* argv[]) {
     strcpy(searchContext.query, argv[1]);
 
     // init threads
-    pthread_t* threads = malloc(sizeof(pthread_t) * SEARCH_THREADS);
-    for (int i = 0; i < SEARCH_THREADS; i++) {
+    pthread_t* threads = malloc(sizeof(pthread_t) * searchThreads);
+    for (int i = 0; i < searchThreads; i++) {
         pthread_create(&threads[i], NULL, task_search, &searchContext);
     }
 
@@ -123,7 +129,7 @@ int main(int argc, char* argv[]) {
 
     // cleanup
     fifo_close(&g_fifo); // ensure it is closed before joining threads
-    for (int i = 0; i < SEARCH_THREADS; i++) {
+    for (int i = 0; i < searchThreads; i++) {
         pthread_join(threads[i], NULL);
     }
     fifo_free(&g_fifo);

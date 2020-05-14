@@ -22,7 +22,7 @@ typedef struct {
     volatile size_t storedBytes;
 } fifo_t;
 
-void fifo_create(fifo_t* fifo, uint16_t count, size_t size);
+int fifo_create(fifo_t* fifo, uint16_t count, size_t size);
 void fifo_free(fifo_t* fifo);
 void fifo_close(fifo_t* fifo);
 int fifo_put(fifo_t* fifo, const void* item);

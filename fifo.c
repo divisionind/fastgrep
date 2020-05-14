@@ -3,24 +3,24 @@
 
 #include "fifo.h"
 
-#define LOCK(x) pthread_mutex_lock(&x->mutex)
-#define UNLOCK(x) pthread_mutex_unlock(&x->mutex)
+#define LOCK(fifo)   pthread_mutex_lock(&fifo->mutex)
+#define UNLOCK(fifo) pthread_mutex_unlock(&fifo->mutex)
 
-#define fifo_is_full(fifo) (fifo->storedBytes >= fifo->bufferSize)
-#define fifo_is_empty(fifo) (fifo->storedBytes == 0)
+#define is_full(fifo)  (fifo->storedBytes >= fifo->bufferSize)
+#define is_empty(fifo) (fifo->storedBytes == 0)
 
-void fifo_create(fifo_t* fifo, uint16_t count, size_t size) {
+int fifo_create(fifo_t* fifo, uint16_t count, size_t size) {
     // initialize buffers
     fifo->bufferSize = count * size;
     fifo->buffer = malloc(fifo->bufferSize);
-    if (!fifo->buffer) return;
+    if (!fifo->buffer) return 1;
 
     fifo->itemSize = size;
     fifo->readOffset = 0;
     fifo->writeOffset = 0;
     fifo->storedBytes = 0;
     fifo->closed = false;
-    pthread_mutex_init(&fifo->mutex, NULL);
+    return pthread_mutex_init(&fifo->mutex, NULL);
 }
 
 void fifo_free(fifo_t* fifo) {
@@ -35,7 +35,7 @@ void fifo_close(fifo_t* fifo) {
 int fifo_put(fifo_t* fifo, const void* item) {
     // fifo is full, return 1 and do not add
     LOCK(fifo);
-    if (fifo_is_full(fifo)) {
+    if (is_full(fifo)) {
         UNLOCK(fifo);
         return 1;
     }
@@ -52,7 +52,7 @@ int fifo_put(fifo_t* fifo, const void* item) {
 
 int fifo_get(fifo_t* fifo, void* item) {
     LOCK(fifo);
-    if (fifo_is_empty(fifo)) {
+    if (is_empty(fifo)) {
         UNLOCK(fifo);
         return 1;
     }
