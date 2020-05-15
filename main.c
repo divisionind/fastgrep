@@ -127,7 +127,7 @@ int task_load_file_entry(const char *filename, const struct stat *info, int flag
  * - disable color   (impl color first)
  * - disable preview (impl prev first)
  */
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
     arguments_t args;
     memset(&args, 0, sizeof(args));
     args.fifoSize      = 512;
