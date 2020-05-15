@@ -13,3 +13,4 @@ make
 echo "copying program to /bin/fastgrep..."
 strip fastgrep
 sudo mv fastgrep /bin/fastgrep
+sudo chmod +x /bin/fastgrep
