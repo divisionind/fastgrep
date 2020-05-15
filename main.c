@@ -130,7 +130,7 @@ int task_load_file_entry(const char *filename, const struct stat *info, int flag
 int main(int argc, char** argv) {
     arguments_t args;
     memset(&args, 0, sizeof(args));
-    args.fifoSize      = 512;
+    args.fifoSize      = 512; // corresponds to at most ~2MB of ram (might change fifo in future to reduce mallocs)
     args.maxFileDesc   = 15;
     args.threads       = sysconf(_SC_NPROCESSORS_ONLN) - 1;
     args.directory     = ".";
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    printf("Searching \"%s\"...\n", args.directory);
+    //printf("Searching \"%s\"...\n", args.directory);
 
     // init threads
     pthread_t* threads = malloc(sizeof(pthread_t) * args.threads);
@@ -169,7 +169,6 @@ int main(int argc, char** argv) {
     }
 
     // iterate files and send them to the fifo
-    // maybe dont use nftw so I can avoid global usage (see performance)
     nftw(args.directory, task_load_file_entry, args.maxFileDesc, FTW_PHYS); // max # open file descriptors, do not follow symlinks (todo maybe allow this?)
 
     // cleanup
