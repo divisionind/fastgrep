@@ -27,11 +27,11 @@ const char* argp_program_version     = "fastgrep 1.1";
 const char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
 const char program_usage[]           = "[QUERY]";
 static struct argp_option options[] = {
-    {"buffer-size", 's', "SIZE",     0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
-    {"file-desc",   'f', "NDESC",    0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
-    {"trim-paths",  'p', 0,          0, "Do NOT trim the file paths with the current dir"},
-    {"threads",     't', "NTHREADS", 0, "Number of threads to use for scanning, default is [(available processors) - 1]"},
-    {"directory",   'd', "DIR",      0, "Directory to scan"}
+    {"buffer-size", 's', "512",   0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
+    {"file-desc",   'f', "15",    0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
+    {"trim-paths",  'p', 0,       0, "Do NOT trim the file paths with the current dir"},
+    {"threads",     't', "N",     0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
+    {"directory",   'd', "\".\"", 0, "Directory to scan"}
 };
 
 error_t parse_opt(int key, char* in, struct argp_state* state) {
