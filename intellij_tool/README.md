@@ -1,7 +1,7 @@
 As an IntelliJ tool
 -------------------
 
-JetBrains IntelliJ as support for external tools. You can integrated fastgrep
+JetBrains IntelliJ has support for external tools. You can integrated fastgrep
 into IntelliJ to allow for faster development. Included in this section are 
 examples on how you could go about doing that.
 
@@ -21,7 +21,7 @@ examples on how you could go about doing that.
 #!/bin/sh
 fastgrep $1 | sed -e 's/^/C:\/Path\/To\/Your\/Sources\/craftbukkit-1.15.1-src\//'
 ```
-where again `C:\Path\To\...` is the path to your sources
+where again `C:\Path\To\...` is the path to your sources (excluding the escape chars).
 
 5. Now to use the script, copy the text `CTRL+C` you would like to search for and use the tool:
 
