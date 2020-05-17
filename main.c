@@ -22,7 +22,7 @@ typedef struct {
     char* directory;
 } arguments_t;
 
-const char* argp_program_version     = "fastgrep 1.1";
+const char* argp_program_version     = "fastgrep 1.2";
 //const char* argp_program_bug_address = "<contact@divisionind.com>";
 const char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
 const char program_usage[]           = "[QUERY]";
