@@ -1,7 +1,7 @@
 #include <malloc.h>
 #include <string.h>
 
-#include "fifo.h"
+#include "strfifo.h"
 
 #define LOCK(fifo)   pthread_mutex_lock(&fifo->mutex)
 #define UNLOCK(fifo) pthread_mutex_unlock(&fifo->mutex)
@@ -9,7 +9,7 @@
 #define is_full(fifo)  (fifo->storedBytes >= fifo->bufferSize)
 #define is_empty(fifo) (fifo->storedBytes == 0)
 
-int fifo_create(fifo_t* fifo, uint16_t count, size_t size) {
+int sfifo_create(sfifo_t* fifo, size_t count, size_t size) {
     // initialize buffers
     fifo->bufferSize = count * size;
     fifo->buffer = malloc(fifo->bufferSize);
@@ -23,16 +23,16 @@ int fifo_create(fifo_t* fifo, uint16_t count, size_t size) {
     return pthread_mutex_init(&fifo->mutex, NULL);
 }
 
-void fifo_free(fifo_t* fifo) {
+void sfifo_free(sfifo_t* fifo) {
     free(fifo->buffer);
     pthread_mutex_destroy(&fifo->mutex);
 }
 
-void fifo_close(fifo_t* fifo) {
+void sfifo_close(sfifo_t* fifo) {
     fifo->closed = true;
 }
 
-int fifo_put(fifo_t* fifo, const void* item) {
+int sfifo_put(sfifo_t* fifo, const char* item) {
     // fifo is full, return 1 and do not add
     LOCK(fifo);
     if (is_full(fifo)) {
@@ -41,8 +41,8 @@ int fifo_put(fifo_t* fifo, const void* item) {
     }
 
     // write to buffer and move ptr
-    memcpy(fifo->buffer + fifo->writeOffset, item, fifo->itemSize);
-    fifo->writeOffset += fifo->itemSize;
+    strcpy(fifo->buffer + fifo->writeOffset, item); // note: no risk of buffer overflow in this impl as the paths will never exceed MAX_PATH, -> strlcpy() or equiv. for other impls
+    fifo->writeOffset += fifo->itemSize;            // strcpy instead of memcpy here to avoid copying zeros for speed (e.g. storedBytes now doesnt reflect actual data stored)
     if (fifo->writeOffset >= fifo->bufferSize) fifo->writeOffset = 0;
 
     fifo->storedBytes += fifo->itemSize;
@@ -50,7 +50,7 @@ int fifo_put(fifo_t* fifo, const void* item) {
     return 0;
 }
 
-int fifo_get(fifo_t* fifo, void* item) {
+int sfifo_get(sfifo_t* fifo, char* item) {
     LOCK(fifo);
     if (is_empty(fifo)) {
         UNLOCK(fifo);
@@ -58,7 +58,7 @@ int fifo_get(fifo_t* fifo, void* item) {
     }
 
     // read from buffer and move ptr
-    memcpy(item, fifo->buffer + fifo->readOffset, fifo->itemSize);
+    strcpy(item, fifo->buffer + fifo->readOffset);
     fifo->readOffset += fifo->itemSize;
     if (fifo->readOffset >= fifo->bufferSize) fifo->readOffset = 0;
 

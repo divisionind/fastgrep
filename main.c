@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <argp.h>
 
-#include "fifo.h"
+#include "strfifo.h"
 
 typedef struct {
     char* query;
@@ -27,7 +27,7 @@ const char* argp_program_version     = "fastgrep 1.1";
 const char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
 const char program_usage[]           = "[QUERY]";
 static struct argp_option options[] = {
-    {"buffer-size", 's', "512",   0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
+    {"buffer-size", 's', "256",   0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
     {"file-desc",   'f', "15",    0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
     {"trim-paths",  'p', 0,       0, "Do NOT trim the file paths with the current dir"},
     {"threads",     't', "N",     0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
@@ -71,15 +71,15 @@ error_t parse_opt(int key, char* in, struct argp_state* state) {
 
 // i hate using a global here but nftw has no way of passing data
 // maybe implement a similar version? check speed
-fifo_t g_fifo;
+sfifo_t g_fifo;
 
 void* task_search(void* arg) {
     arguments_t * context = arg;
     const char* query = context->query;
-    char* filename;
+    char filename[PATH_MAX];
 
     while (!g_fifo.closed) {
-        if (fifo_get(&g_fifo, &filename)) {
+        if (sfifo_get(&g_fifo, filename)) {
             continue;
         }
         FILE* file = fopen(filename, "r");
@@ -101,8 +101,6 @@ void* task_search(void* arg) {
             free(lineBuffer);
             fclose(file);
         }
-
-        free(filename);
     }
 
     return NULL;
@@ -110,13 +108,7 @@ void* task_search(void* arg) {
 
 int task_load_file_entry(const char *filename, const struct stat *info, int flag, struct FTW *pathInfo) {
     if (flag == FTW_F) {
-        // first create a copy of the filename string as it will be cleaned on function proceed
-        unsigned long fileNameLen = strlen(filename) + 1;
-        char* fileNameCopy = malloc(fileNameLen);    // TODO maybe reduce malloc's here? test speed vs direct cpy to buffer
-        memcpy(fileNameCopy, filename, fileNameLen); // only prob is max_path = 4096 which is more space than I am comfortable with assuming 500 fifo spots, only ~2mb ram but for best eff. i would have to re-structure the fifo util
-
-        // then add the file to the fifo buffer/stream | wait for it to be added successfully
-        while (fifo_put(&g_fifo, &fileNameCopy));
+        while (sfifo_put(&g_fifo, filename));
     }
     return 0;
 }
@@ -130,7 +122,7 @@ int task_load_file_entry(const char *filename, const struct stat *info, int flag
 int main(int argc, char** argv) {
     arguments_t args;
     memset(&args, 0, sizeof(args));
-    args.fifoSize      = 512; // corresponds to at most ~2MB of ram (might change fifo in future to reduce mallocs)
+    args.fifoSize      = 256; // corresponds to ~1MB ram
     args.maxFileDesc   = 15;
     args.threads       = sysconf(_SC_NPROCESSORS_ONLN) - 1;
     args.directory     = ".";
@@ -150,7 +142,7 @@ int main(int argc, char** argv) {
         args.directoryTrim = (int) strlen(args.directory) + 1;
 
     // done parsing args, create fifo
-    if (fifo_create(&g_fifo, args.fifoSize, sizeof(char*))) {
+    if (sfifo_create(&g_fifo, args.fifoSize, PATH_MAX)) {
         fprintf(stderr, "insufficient memory or other resources\n");
         return 1;
     }
@@ -159,8 +151,6 @@ int main(int argc, char** argv) {
         fprintf(stderr, "invalid processor configuration\n");
         return 1;
     }
-
-    //printf("Searching \"%s\"...\n", args.directory);
 
     // init threads
     pthread_t* threads = malloc(sizeof(pthread_t) * args.threads);
@@ -172,10 +162,10 @@ int main(int argc, char** argv) {
     nftw(args.directory, task_load_file_entry, args.maxFileDesc, FTW_PHYS); // max # open file descriptors, do not follow symlinks (todo maybe allow this?)
 
     // cleanup
-    fifo_close(&g_fifo); // ensure it is closed before joining threads
+    sfifo_close(&g_fifo); // ensure it is closed before joining threads
     for (int i = 0; i < args.threads; i++) {
         pthread_join(threads[i], NULL);
     }
-    fifo_free(&g_fifo);
+    sfifo_free(&g_fifo);
     return 0;
 }
