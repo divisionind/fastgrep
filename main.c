@@ -39,7 +39,7 @@ typedef struct {
 } arguments_t;
 
 const char* argp_program_version     = "fastgrep 1.2";
-//const char* argp_program_bug_address = "<contact@divisionind.com>";
+const char* argp_program_bug_address = "<https://github.com/divisionind/fastgrep/issues>";
 const char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
 const char program_usage[]           = "[QUERY]";
 static struct argp_option options[] = {
