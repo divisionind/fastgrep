@@ -38,16 +38,17 @@ typedef struct {
     char* directory;
 } arguments_t;
 
-const char* argp_program_version     = "fastgrep 1.2";
+const char* argp_program_version     = "fastgrep 1.3";
 const char* argp_program_bug_address = "<https://github.com/divisionind/fastgrep/issues>";
-const char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
-const char program_usage[]           = "[QUERY]";
+static char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
+static char program_usage[]           = "[QUERY]";
 static struct argp_option options[] = {
     {"buffer-size", 's', "256",   0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
     {"file-desc",   'f', "15",    0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
     {"trim-paths",  'p', 0,       0, "Do NOT trim the file paths with the current dir"},
     {"threads",     't', "N",     0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
-    {"directory",   'd', "\".\"", 0, "Directory to scan"}
+    {"directory",   'd', "\".\"", 0, "Directory to scan"},
+    {0}
 };
 
 error_t parse_opt(int key, char* in, struct argp_state* state) {
@@ -85,17 +86,16 @@ error_t parse_opt(int key, char* in, struct argp_state* state) {
     return 0;
 }
 
-// i hate using a global here but nftw has no way of passing data
-// maybe implement a similar version? check speed
-sfifo_t g_fifo;
+static struct argp arg_parser = {options, parse_opt, program_usage, program_desc};
+sfifo_t fifo;
 
 void* task_search(void* arg) {
     arguments_t * context = arg;
     const char* query = context->query;
     char filename[PATH_MAX];
 
-    while (!g_fifo.closed) {
-        if (sfifo_get(&g_fifo, filename)) {
+    while (!fifo.closed) {
+        if (sfifo_get(&fifo, filename)) {
             continue;
         }
         FILE* file = fopen(filename, "r");
@@ -124,7 +124,7 @@ void* task_search(void* arg) {
 
 int task_load_file_entry(const char *filename, const struct stat *info, int flag, struct FTW *pathInfo) {
     if (flag == FTW_F) {
-        while (sfifo_put(&g_fifo, filename));
+        while (sfifo_put(&fifo, filename));
     }
     return 0;
 }
@@ -144,7 +144,6 @@ int main(int argc, char** argv) {
     args.directory     = ".";
     args.directoryTrim = -1;
 
-    struct argp arg_parser = {options, parse_opt, program_usage, program_desc};
     argp_parse(&arg_parser, argc, argv, 0, 0, &args);
 
     // resolve directory
@@ -158,7 +157,7 @@ int main(int argc, char** argv) {
         args.directoryTrim = (int) strlen(args.directory) + 1;
 
     // done parsing args, create fifo
-    if (sfifo_create(&g_fifo, args.fifoSize, PATH_MAX)) {
+    if (sfifo_create(&fifo, args.fifoSize, PATH_MAX)) {
         fprintf(stderr, "insufficient memory or other resources\n");
         return 1;
     }
@@ -175,13 +174,13 @@ int main(int argc, char** argv) {
     }
 
     // iterate files and send them to the fifo
-    nftw(args.directory, task_load_file_entry, args.maxFileDesc, FTW_PHYS); // max # open file descriptors, do not follow symlinks (todo maybe allow this?)
+    nftw(args.directory, task_load_file_entry, args.maxFileDesc, FTW_PHYS); // max # open file descriptors, do not follow symlinks (todo maybe allow this? as an option)
 
     // cleanup
-    sfifo_close(&g_fifo); // ensure it is closed before joining threads
+    sfifo_close(&fifo); // ensure it is closed before joining threads
     for (int i = 0; i < args.threads; i++) {
         pthread_join(threads[i], NULL);
     }
-    sfifo_free(&g_fifo);
+    sfifo_free(&fifo);
     return 0;
 }
