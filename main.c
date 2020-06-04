@@ -38,7 +38,7 @@ typedef struct {
     char* directory;
 } arguments_t;
 
-const char* argp_program_version     = "fastgrep 1.3";
+const char* argp_program_version     = "fastgrep 1.4";
 const char* argp_program_bug_address = "<https://github.com/divisionind/fastgrep/issues>";
 static char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
 static char program_usage[]           = "[QUERY]";
@@ -94,7 +94,7 @@ void* task_search(void* arg) {
     const char* query = context->query;
     char filename[PATH_MAX];
 
-    while (!fifo.closed) {
+    while (!(fifo.closed && fifo.storedBytes == 0)) {
         if (sfifo_get(&fifo, filename)) {
             continue;
         }
@@ -147,9 +147,10 @@ int main(int argc, char** argv) {
     argp_parse(&arg_parser, argc, argv, 0, 0, &args);
 
     // resolve directory
+    char* oldDir = args.directory;
     args.directory = realpath(args.directory, NULL);
     if (args.directory == NULL) {
-        fprintf(stderr, "invalid directory\n");
+        fprintf(stderr, "invalid directory: %s\n", oldDir);
         return 1;
     }
 
