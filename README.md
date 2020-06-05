@@ -21,15 +21,16 @@ For more info see [this](intellij_tool/README.md).
 - Building: cmake, gcc
 - Running:  argp, pthread
 
-##### Installing from binary release - Linux
-1. Run 
-`sudo curl -fsSL https://github.com/divisionind/fastgrep/releases/download/LATEST_VERSION/fastgrep -o /usr/bin/fastgrep && sudo chmod +x /usr/bin/fastgrep`
-2. where `LATEST_VERSION` is the latest version of fastgrep as seen from the releases tab (e.g. `v1.3`), NOT `fastgrep v1.3`
+##### Installing from binary release - Linux (Debian/Ubuntu)
+```shell script
+curl -fsSL https://raw.githubusercontent.com/divisionind/fastgrep/master/get_fastgrep.sh -o get_fastgrep.sh
+sudo sh get_fastgrep.sh
+```
 
 ##### Installing from source - Linux
 1. Clone repo `git clone https://github.com/divisionind/fastgrep.git`
 2. Enter directory `cd fastgrep`
-3. Build locally and install `sudo ./fastgrep`
+3. Build locally and install `sudo sh install.sh`
 
 ##### Windows
 There is a portable cygwin build for windows. However, I have not made an install script at this time.
