@@ -23,7 +23,7 @@ For more info see [this](intellij_tool/README.md).
 
 ##### Installing from binary release - Linux
 1. Run 
-`sudo curl -fsSL https://github.com/divisionind/fastgrep/releases/download/LATEST_VERSION/fastgrep -o /bin/fastgrep && sudo chmod +x /bin/fastgrep`
+`sudo curl -fsSL https://github.com/divisionind/fastgrep/releases/download/LATEST_VERSION/fastgrep -o /usr/bin/fastgrep && sudo chmod +x /usr/bin/fastgrep`
 2. where `LATEST_VERSION` is the latest version of fastgrep as seen from the releases tab (e.g. `v1.3`), NOT `fastgrep v1.3`
 
 ##### Installing from source - Linux
