@@ -36,22 +36,29 @@ typedef struct {
     int directoryTrim;
     long threads;
     char* directory;
+    bool previewMatch;
+    bool useColor;
 } arguments_t;
 
-const char* argp_program_version     = "fastgrep 1.4";
-const char* argp_program_bug_address = "<https://github.com/divisionind/fastgrep/issues>";
+const char* argp_program_bug_address  = "<https://github.com/divisionind/fastgrep/issues>";
+static const char* program_version    = "fastgrep 1.5";
 static char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
 static char program_usage[]           = "[QUERY]";
+
 static struct argp_option options[] = {
     {"buffer-size", 's', "256",   0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
     {"file-desc",   'f', "15",    0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
     {"trim-paths",  'p', 0,       0, "Do NOT trim the file paths with the current dir"},
     {"threads",     't', "N",     0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
     {"directory",   'd', "\".\"", 0, "Directory to scan"},
+    {"no-color",    'k', 0,       0, "Disables color in message printout"},
+    {"no-preview",    0, 0,       0, "Disables the previewing of match line"},
+    {"extensions",  'e', 0,       0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
+    {"version",     'v', 0,       0, "Print program version"},
     {0}
 };
 
-error_t parse_opt(int key, char* in, struct argp_state* state) {
+static error_t parse_opt(int key, char* in, struct argp_state* state) {
     arguments_t* arg = (arguments_t*) state->input;
     switch (key) {
         case 's':
@@ -69,6 +76,9 @@ error_t parse_opt(int key, char* in, struct argp_state* state) {
         case 'd':
             arg->directory = in;
             break;
+        case 'v':
+            printf("%s\n", program_version);
+            exit(0);
         case ARGP_KEY_ARG:
             if (state->arg_num >= 1)
                 argp_usage(state);
@@ -89,7 +99,7 @@ error_t parse_opt(int key, char* in, struct argp_state* state) {
 static struct argp arg_parser = {options, parse_opt, program_usage, program_desc};
 sfifo_t fifo;
 
-void* task_search(void* arg) {
+static void* task_search(void* arg) {
     arguments_t * context = arg;
     const char* query = context->query;
     char filename[PATH_MAX];
@@ -105,11 +115,10 @@ void* task_search(void* arg) {
 
         if (file != NULL) {
             while ((getline(&lineBuffer, &lineBufferSize, file)) != EOF) {
-                // lineN - current line; read - length of current line; lineBuffer - actual line string
                 lineN++;
 
                 if (strstr(lineBuffer, query) != NULL) {
-                    // then the line contained the search param
+                    // line contained the search param
                     printf("%s:%i\n", filename + context->directoryTrim, lineN);
                 }
             }
@@ -122,7 +131,7 @@ void* task_search(void* arg) {
     return NULL;
 }
 
-int task_load_file_entry(const char *filename, const struct stat *info, int flag, struct FTW *pathInfo) {
+static int task_load_file_entry(const char *filename, const struct stat *info, int flag, struct FTW *pathInfo) {
     if (flag == FTW_F) {
         while (sfifo_put(&fifo, filename));
     }
