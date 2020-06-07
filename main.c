@@ -33,7 +33,8 @@
 
 #define COLOR(x) ("\033[" x "m")
 #define RESET     COLOR("")
-#define UNDERLINE COLOR("4")
+#define UNDERLINE COLOR("95")
+#define SIZEOF_COLOR(x) (sizeof(x) - 1)
 
 #define AFLAG_USE_COLOR     (1u<<1u)
 #define AFLAG_PREVIEW_MATCH (1u)
@@ -61,9 +62,9 @@ static struct argp_option options[] = {
     {"threads",        't', "N",     0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
     {"directory",      'd', "\".\"", 0, "Directory to scan"},
     {"no-color",       'k', 0,       0, "Disables color in message printout"},
-    {"no-preview",     'P', 0,       0, "Disables the previewing of match line"},
+    {"no-preview",     'P', 0,       0, "Disables the previewing of match line. Note: This also disables color"},
     {"extensions",     'e', 0,       0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
-    {"preview-bounds", 'b', "12",    0, "Amount of text on each side of the result to display in the preview"},
+    {"preview-bounds", 'b', "15",    0, "Amount of text on each side of the result to display in the preview"},
     {"version",        'v', 0,       0, "Print program version"},
     {0}
 };
@@ -140,8 +141,9 @@ static void* task_search(void* arg) {
                 char* matchStart;
                 if ((matchStart = strstr(lineBuffer, query)) != NULL) {
                     // line contained the search param
-                    stringbuilder_t* sb = NULL; // dynamically allocated stringbuilder
-                    char* previewOutput;        // start of actual string passed to printf
+                    stringbuilder_t* sb = NULL;       // dynamically allocated stringbuilder
+                    char* previewOutput;              // start of actual string passed to printf
+                    char* outputFormat = "%s:%i\t%s"; // format of the printf
 
                     if (context->flags & AFLAG_PREVIEW_MATCH) {
                         // calculate preview bounds
@@ -167,7 +169,7 @@ static void* task_search(void* arg) {
                         size_t previewLength = stopOffset - startOffset;
 
                         if (context->flags & AFLAG_USE_COLOR) {
-                            sb = sb_create(previewLength + 2 + sizeof(UNDERLINE) + sizeof(RESET));
+                            sb = sb_create(previewLength + 2 + SIZEOF_COLOR(UNDERLINE) + SIZEOF_COLOR(RESET));
                             sb_append(sb, " ", 1);
 
                             char* lineBuffPos = lineBuffer + startOffset;
@@ -175,12 +177,14 @@ static void* task_search(void* arg) {
                             sb_append(sb, lineBuffPos, curOffset = (matchStart - lineBuffPos));
                             lineBuffPos += curOffset;
 
-                            sb_append(sb, UNDERLINE, sizeof(UNDERLINE));
-                            sb_append(sb, lineBuffPos, queryLen);         // this isnt copying for some reason, or anything after UNDERLINE, bounds are correct, etc.
+                            sb_append(sb, UNDERLINE, SIZEOF_COLOR(UNDERLINE));
+                            sb_append(sb, lineBuffPos, queryLen);
                             lineBuffPos += queryLen;
 
-                            sb_append(sb, RESET, sizeof(RESET));
+                            sb_append(sb, RESET, SIZEOF_COLOR(RESET));
                             sb_append(sb, lineBuffPos, stopOffset - (lineBuffPos - lineBuffer));
+
+                            outputFormat = "\033[1m%s:%i\033[m\t%s";
                         } else {
                             sb = sb_create(previewLength + 2);
                             sb_append(sb, " ", 1);
@@ -194,7 +198,7 @@ static void* task_search(void* arg) {
                         previewOutput = "\n";
                     }
 
-                    printf("%s:%i\t%s", filename + context->directoryTrim, lineN, previewOutput);
+                    printf(outputFormat, filename + context->directoryTrim, lineN, previewOutput);
                     sb_free(sb);
                 }
             }
@@ -229,7 +233,7 @@ int main(int argc, char** argv) {
     args.directory     = ".";
     args.directoryTrim = -1;
     args.flags         = AFLAG_PREVIEW_MATCH | AFLAG_USE_COLOR;
-    args.previewBounds = 12;
+    args.previewBounds = 15;
 
     argp_parse(&arg_parser, argc, argv, 0, 0, &args);
 
