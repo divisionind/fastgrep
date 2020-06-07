@@ -32,12 +32,14 @@
 #include "stringbuilder.h"
 
 #define COLOR(x) ("\033[" x "m")
-#define RESET     COLOR("")
-#define UNDERLINE COLOR("95")
-#define SIZEOF_COLOR(x) (sizeof(x) - 1)
+#define RESET           COLOR("")
+#define COLOR_HIGHLIGHT COLOR("95")
+#define STR_LEN(x)      (sizeof(x) - 1)
 
 #define AFLAG_USE_COLOR     (1u<<1u)
 #define AFLAG_PREVIEW_MATCH (1u)
+
+#define CYGWIN_PREFIX "/cygdrive/"
 
 typedef struct {
     char* query;
@@ -119,6 +121,24 @@ static error_t parse_opt(int key, char* in, struct argp_state* state) {
 static struct argp arg_parser = {options, parse_opt, program_usage, program_desc};
 sfifo_t fifo;
 
+#ifdef __CYGWIN__
+static void fix_cygwin_path(char* path) {
+    if (strncmp(CYGWIN_PREFIX, path, STR_LEN(CYGWIN_PREFIX)) == 0) {
+        // starts with cygwin prefix
+
+        path[0] = *(path + STR_LEN(CYGWIN_PREFIX)) - 0x20; // drive letter
+        path[1] = ':';
+        char current;
+        int write = 2;
+        for (int read = STR_LEN(CYGWIN_PREFIX) + 1; (current = path[read]) != '\0'; read++, write++) {
+            path[write] = current == '/' ? '\\' : current;
+        }
+
+        path[write] = 0;
+    }
+}
+#endif
+
 static void* task_search(void* arg) {
     arguments_t * context = arg;
     const char* query = context->query;
@@ -169,7 +189,7 @@ static void* task_search(void* arg) {
                         size_t previewLength = stopOffset - startOffset;
 
                         if (context->flags & AFLAG_USE_COLOR) {
-                            sb = sb_create(previewLength + 2 + SIZEOF_COLOR(UNDERLINE) + SIZEOF_COLOR(RESET));
+                            sb = sb_create(previewLength + 2 + STR_LEN(COLOR_HIGHLIGHT) + STR_LEN(RESET));
                             sb_append(sb, " ", 1);
 
                             char* lineBuffPos = lineBuffer + startOffset;
@@ -177,11 +197,11 @@ static void* task_search(void* arg) {
                             sb_append(sb, lineBuffPos, curOffset = (matchStart - lineBuffPos));
                             lineBuffPos += curOffset;
 
-                            sb_append(sb, UNDERLINE, SIZEOF_COLOR(UNDERLINE));
+                            sb_append(sb, COLOR_HIGHLIGHT, STR_LEN(COLOR_HIGHLIGHT));
                             sb_append(sb, lineBuffPos, queryLen);
                             lineBuffPos += queryLen;
 
-                            sb_append(sb, RESET, SIZEOF_COLOR(RESET));
+                            sb_append(sb, RESET, STR_LEN(RESET));
                             sb_append(sb, lineBuffPos, stopOffset - (lineBuffPos - lineBuffer));
 
                             outputFormat = "\033[1m%s:%i\033[m\t%s";
@@ -197,6 +217,11 @@ static void* task_search(void* arg) {
                     } else {
                         previewOutput = "\n";
                     }
+
+                    #ifdef __CYGWIN__
+                        if (context->directoryTrim == 0)
+                            fix_cygwin_path(filename);
+                    #endif
 
                     printf(outputFormat, filename + context->directoryTrim, lineN, previewOutput);
                     sb_free(sb);
@@ -221,8 +246,9 @@ static int task_load_file_entry(const char *filename, const struct stat *info, i
 /*
  * Create options for:
  * - ignore case / regex
- * - disable color   (impl color first)
- * - disable preview (impl prev first)
+ *
+ * TODO
+ * cygwin is much faster than WSL2 with fastgrep || update intellij_tool guide
  */
 int main(int argc, char** argv) {
     arguments_t args;
