@@ -5,7 +5,24 @@ JetBrains IntelliJ has support for external tools. You can integrated fastgrep
 into IntelliJ to allow for faster development. Included in this section are 
 examples on how you could go about doing that.
 
-### Steps
+### Steps (current)
+1. Download the [latest](https://github.com/divisionind/fastgrep/releases) portable windows release or installer
+2. Install or extract the portable release somewhere and add it to your system path
+3. Go to `Settings->Tools->External Tools` and click the `+` icon
+4. Fill in these parameters:
+
+![](new_external_tool_example.png)
+
+5. Now to use the script, copy the text `CTRL+C` you would like to search for and use the tool:
+
+![](usage_example.png)
+
+6. You will see an output of clickable links in the console to the sources containing the copied string.
+Like this:
+
+![](output_example.png)
+
+### Steps (<v1.5, e.g. outdated)
 1. Ensure you have a wsl with fastgrep installed on your system
 2. Go to `Settings->Tools->External Tools` and click the `+` icon
 3. Fill in these parameters:

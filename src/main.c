@@ -21,7 +21,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <pthread.h>
 #include <malloc.h>
 #include <string.h>
@@ -53,7 +52,7 @@ typedef struct {
 } arguments_t;
 
 const char* argp_program_bug_address  = "<https://github.com/divisionind/fastgrep/issues>";
-static const char* program_version    = "fastgrep 1.5";
+static const char* program_version    = "fastgrep v" PROJECT_VERSION;
 static char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
 static char program_usage[]           = "[QUERY]";
 

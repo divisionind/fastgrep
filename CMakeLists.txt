@@ -19,6 +19,16 @@ project(fastgrep C)
 
 set(CMAKE_C_STANDARD 99)
 
+set(PROJECT_DESCRIPTION "a multi-threaded tool to search for files containing a pattern")
+set(PROJECT_NAME "fastgrep")
+set(PROJECT_HOMEPAGE_URL "https://github.com/divisionind/fastgrep")
+set(PROJECT_VERSION_MAJOR 1)
+set(PROJECT_VERSION_MINOR 1)
+set(PROJECT_VERSION_PATCH 5)
+set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+set(PROJECT_VENDOR "Division Industries LLC")
+
+add_definitions(-DPROJECT_VERSION="${PROJECT_VERSION}")
 include_directories(src include)
 add_executable(fastgrep src/main.c src/strfifo.c include/strfifo.h src/stringbuilder.c include/stringbuilder.h)
 target_link_libraries(fastgrep pthread)
@@ -26,3 +36,35 @@ target_link_libraries(fastgrep pthread)
 if(CYGWIN)
     target_link_libraries(fastgrep argp)
 endif()
+
+add_custom_target(PACKAGE_ALL COMMAND cpack WORKING_DIRECTORY .)
+
+# packaging info
+
+# common vars
+set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
+set(CPACK_PACKAGE_DESCRIPTION ${PROJECT_DESCRIPTION})
+set(CPACK_PACKAGE_VENDOR ${PROJECT_VENDOR})
+set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
+set(CPACK_PACKAGE_CONTACT "Andrew Howard <ahoward@divisionind.com>")
+set(CPACK_STRIP_FILES 1)
+
+install(TARGETS fastgrep DESTINATION bin COMPONENT core)
+#install(FILES "$ENV{CYGWIN_DIR}/bin/cygwin1.dll" DESTINATION bin COMPONENT core)
+#install(FILES "$ENV{CYGWIN_DIR}/bin/cygargp-0.dll" DESTINATION bin COMPONENT core)
+# only package with windows installers or zips
+#install(FILES LICENSE DESTINATION .)
+
+# /usr/share/doc/{package_name}/copyright | needs proper formatting
+install(FILES LICENSE DESTINATION share/doc)
+
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+# todo only include what is currently being built
+include(CPackDEBConfig)
+#include(CPackNSISConfig)
+#include(CPackZIPConfig)
+include(CPack)
