@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <pthread.h>
 #include <malloc.h>
 #include <string.h>
@@ -28,6 +29,14 @@
 #include <argp.h>
 
 #include "strfifo.h"
+#include "stringbuilder.h"
+
+#define COLOR(x) ("\033[" x "m")
+#define RESET     COLOR("")
+#define UNDERLINE COLOR("4")
+
+#define AFLAG_USE_COLOR     (1u<<1u)
+#define AFLAG_PREVIEW_MATCH (1u)
 
 typedef struct {
     char* query;
@@ -36,8 +45,8 @@ typedef struct {
     int directoryTrim;
     long threads;
     char* directory;
-    bool previewMatch;
-    bool useColor;
+    unsigned int flags;
+    int previewBounds;
 } arguments_t;
 
 const char* argp_program_bug_address  = "<https://github.com/divisionind/fastgrep/issues>";
@@ -46,15 +55,16 @@ static char program_desc[]            = "Searches for files recursively in a [-d
 static char program_usage[]           = "[QUERY]";
 
 static struct argp_option options[] = {
-    {"buffer-size", 's', "256",   0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
-    {"file-desc",   'f', "15",    0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
-    {"trim-paths",  'p', 0,       0, "Do NOT trim the file paths with the current dir"},
-    {"threads",     't', "N",     0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
-    {"directory",   'd', "\".\"", 0, "Directory to scan"},
-    {"no-color",    'k', 0,       0, "Disables color in message printout"},
-    {"no-preview",    0, 0,       0, "Disables the previewing of match line"},
-    {"extensions",  'e', 0,       0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
-    {"version",     'v', 0,       0, "Print program version"},
+    {"buffer-size",    's', "256",   0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
+    {"file-desc",      'f', "15",    0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
+    {"trim-paths",     'p', 0,       0, "Do NOT trim the file paths with the current dir"},
+    {"threads",        't', "N",     0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
+    {"directory",      'd', "\".\"", 0, "Directory to scan"},
+    {"no-color",       'k', 0,       0, "Disables color in message printout"},
+    {"no-preview",     'P', 0,       0, "Disables the previewing of match line"},
+    {"extensions",     'e', 0,       0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
+    {"preview-bounds", 'b', "12",    0, "Amount of text on each side of the result to display in the preview"},
+    {"version",        'v', 0,       0, "Print program version"},
     {0}
 };
 
@@ -79,6 +89,15 @@ static error_t parse_opt(int key, char* in, struct argp_state* state) {
         case 'v':
             printf("%s\n", program_version);
             exit(0);
+        case 'P':
+            arg->flags &= ~AFLAG_PREVIEW_MATCH;
+            break;
+        case 'k':
+            arg->flags &= ~AFLAG_USE_COLOR;
+            break;
+        case 'b':
+            arg->previewBounds = atoi(in);
+            break;
         case ARGP_KEY_ARG:
             if (state->arg_num >= 1)
                 argp_usage(state);
@@ -112,14 +131,71 @@ static void* task_search(void* arg) {
         unsigned int lineN = 0;
         size_t lineBufferSize = 0;
         char* lineBuffer = NULL;
+        ssize_t lineLength;
 
         if (file != NULL) {
-            while ((getline(&lineBuffer, &lineBufferSize, file)) != EOF) {
+            while ((lineLength = getline(&lineBuffer, &lineBufferSize, file)) != EOF) {
                 lineN++;
 
-                if (strstr(lineBuffer, query) != NULL) {
+                char* matchStart;
+                if ((matchStart = strstr(lineBuffer, query)) != NULL) {
                     // line contained the search param
-                    printf("%s:%i\n", filename + context->directoryTrim, lineN);
+                    stringbuilder_t* sb = NULL; // dynamically allocated stringbuilder
+                    char* previewOutput;        // start of actual string passed to printf
+
+                    if (context->flags & AFLAG_PREVIEW_MATCH) {
+                        // calculate preview bounds
+                        int64_t startOffset, stopOffset;
+                        size_t queryLen = strlen(query);
+
+                        startOffset = matchStart - lineBuffer;
+                        stopOffset  = startOffset + queryLen;
+                        startOffset -= context->previewBounds;
+                        stopOffset  += context->previewBounds;
+                        if (startOffset < 0)
+                            startOffset = 0;
+
+                        if (stopOffset > lineLength)
+                            stopOffset = lineLength;
+                        // end of bound calculations
+
+                        // limit characters to decent looking ascii (replacing with spaces)
+                        for (size_t i = 0; i < lineLength; i++) {
+                            if (lineBuffer[i] < 0x20 || lineBuffer[i] > 0x7E) lineBuffer[i] = 0x20;
+                        }
+
+                        size_t previewLength = stopOffset - startOffset;
+
+                        if (context->flags & AFLAG_USE_COLOR) {
+                            sb = sb_create(previewLength + 2 + sizeof(UNDERLINE) + sizeof(RESET));
+                            sb_append(sb, " ", 1);
+
+                            char* lineBuffPos = lineBuffer + startOffset;
+                            size_t curOffset; // could be zero
+                            sb_append(sb, lineBuffPos, curOffset = (matchStart - lineBuffPos));
+                            lineBuffPos += curOffset;
+
+                            sb_append(sb, UNDERLINE, sizeof(UNDERLINE));
+                            sb_append(sb, lineBuffPos, queryLen);         // this isnt copying for some reason, or anything after UNDERLINE, bounds are correct, etc.
+                            lineBuffPos += queryLen;
+
+                            sb_append(sb, RESET, sizeof(RESET));
+                            sb_append(sb, lineBuffPos, stopOffset - (lineBuffPos - lineBuffer));
+                        } else {
+                            sb = sb_create(previewLength + 2);
+                            sb_append(sb, " ", 1);
+                            sb_append(sb, lineBuffer + startOffset, previewLength);
+                        }
+
+                        // add suffix return+nulterm
+                        sb_append(sb, "\n", 1);
+                        previewOutput = sb->buffer;
+                    } else {
+                        previewOutput = "\n";
+                    }
+
+                    printf("%s:%i\t%s", filename + context->directoryTrim, lineN, previewOutput);
+                    sb_free(sb);
                 }
             }
 
@@ -152,6 +228,8 @@ int main(int argc, char** argv) {
     args.threads       = sysconf(_SC_NPROCESSORS_ONLN) - 1;
     args.directory     = ".";
     args.directoryTrim = -1;
+    args.flags         = AFLAG_PREVIEW_MATCH | AFLAG_USE_COLOR;
+    args.previewBounds = 12;
 
     argp_parse(&arg_parser, argc, argv, 0, 0, &args);
 
@@ -173,7 +251,7 @@ int main(int argc, char** argv) {
     }
 
     if (args.threads < 1) {
-        fprintf(stderr, "invalid processor configuration\n");
+        fprintf(stderr, "invalid processor configuration, 2 or more cores is required\n");
         return 1;
     }
 

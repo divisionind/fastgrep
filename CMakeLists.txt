@@ -19,7 +19,7 @@ project(fastgrep C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(fastgrep main.c strfifo.c strfifo.h)
+add_executable(fastgrep main.c strfifo.c strfifo.h stringbuilder.c stringbuilder.h)
 target_link_libraries(fastgrep pthread)
 
 if(CYGWIN)
