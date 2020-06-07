@@ -246,8 +246,7 @@ static int task_load_file_entry(const char *filename, const struct stat *info, i
  * Create options for:
  * - ignore case / regex
  *
- * TODO
- * cygwin is much faster than WSL2 with fastgrep || update intellij_tool guide
+ * TODO create impl for --extensions option
  */
 int main(int argc, char** argv) {
     arguments_t args;
