@@ -60,7 +60,7 @@ install(TARGETS fastgrep DESTINATION bin COMPONENT core)
 #install(FILES LICENSE DESTINATION .)
 
 # /usr/share/doc/{package_name}/copyright | needs proper formatting
-install(FILES LICENSE DESTINATION share/doc)
+#install(FILES LICENSE DESTINATION share/doc)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 # todo only include what is currently being built

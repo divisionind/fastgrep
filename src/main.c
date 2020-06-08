@@ -20,6 +20,7 @@
 #include <ftw.h>
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <malloc.h>
@@ -39,6 +40,72 @@
 #define AFLAG_PREVIEW_MATCH (1u)
 
 #define CYGWIN_PREFIX "/cygdrive/"
+
+#ifdef __MINGW32__
+#include <windows.h>
+#define realpath(x, y) _fullpath(x, y, _MAX_PATH)
+
+size_t getline(char **lineptr, size_t *n, FILE *stream) {
+    char *bufptr = NULL;
+    char *p = bufptr;
+    size_t size;
+    int c;
+
+    if (lineptr == NULL) {
+        return -1;
+    }
+    if (stream == NULL) {
+        return -1;
+    }
+    if (n == NULL) {
+        return -1;
+    }
+    bufptr = *lineptr;
+    size = *n;
+
+    c = fgetc(stream);
+    if (c == EOF) {
+        return -1;
+    }
+    if (bufptr == NULL) {
+        bufptr = malloc(128);
+        if (bufptr == NULL) {
+            return -1;
+        }
+        size = 128;
+    }
+    p = bufptr;
+    while (c != EOF) {
+        if ((p - bufptr) > (size - 1)) {
+            size = size + 128;
+            bufptr = realloc(bufptr, size);
+            if (bufptr == NULL) {
+                return -1;
+            }
+        }
+        *p++ = c;
+        if (c == '\n') {
+            break;
+        }
+        c = fgetc(stream);
+    }
+
+    *p++ = '\0';
+    *lineptr = bufptr;
+    *n = size;
+
+    return p - bufptr - 1;
+}
+
+long getprocessors() {
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+
+    return info.dwNumberOfProcessors;
+}
+
+#define sysconf(x) getprocessors()
+#endif
 
 typedef struct {
     char* query;
@@ -152,6 +219,7 @@ static void* task_search(void* arg) {
         size_t lineBufferSize = 0;
         char* lineBuffer = NULL;
         ssize_t lineLength;
+
 
         if (file != NULL) {
             while ((lineLength = getline(&lineBuffer, &lineBufferSize, file)) != EOF) {
