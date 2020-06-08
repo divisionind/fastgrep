@@ -26,7 +26,12 @@
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
+
+#ifndef __MINGW32__
 #include <argp.h>
+#else
+#include "fastgrep-mingw.h"
+#endif
 
 #include "strfifo.h"
 #include "stringbuilder.h"
@@ -218,10 +223,10 @@ static void* task_search(void* arg) {
                         previewOutput = "\n";
                     }
 
-#ifdef __CYGWIN__
+                    #ifdef __CYGWIN__
                     if (context->directoryTrim == 0)
                             fix_cygwin_path(filename);
-#endif
+                    #endif
 
                     printf(outputFormat, filename + context->directoryTrim, lineN, previewOutput);
                     sb_free(sb);

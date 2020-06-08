@@ -30,7 +30,7 @@ set(PROJECT_VENDOR "Division Industries LLC")
 
 add_definitions(-DPROJECT_VERSION="${PROJECT_VERSION}")
 include_directories(src include)
-add_executable(fastgrep src/main.c src/strfifo.c include/strfifo.h src/stringbuilder.c include/stringbuilder.h)
+add_executable(fastgrep src/main.c src/strfifo.c include/strfifo.h src/stringbuilder.c include/stringbuilder.h include/fastgrep-mingw.h src/fastgrep-mingw.c)
 target_link_libraries(fastgrep pthread)
 
 if(CYGWIN)
@@ -64,7 +64,7 @@ install(TARGETS fastgrep DESTINATION bin COMPONENT core)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 # todo only include what is currently being built
-include(CPackDEBConfig)
-#include(CPackNSISConfig)
+#include(CPackDEBConfig)
+include(CPackNSISConfig)
 #include(CPackZIPConfig)
 include(CPack)
