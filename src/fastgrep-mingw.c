@@ -76,13 +76,13 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
     return pos;
 }
 
-long getprocessors() {
+long mingw_getprocessors() {
     SYSTEM_INFO info;
     GetSystemInfo(&info);
     return info.dwNumberOfProcessors;
 }
 
-void enable_color() {
+void mingw_enable_color() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut == INVALID_HANDLE_VALUE) {
         return;
@@ -96,6 +96,15 @@ void enable_color() {
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     if (!SetConsoleMode(hOut, dwMode)) {
         return;
+    }
+}
+
+void mingw_fix_path(char* path) {
+    char current;
+    int i;
+
+    for (i = 0; (current = path[i]) != '\0'; i++) {
+        path[i] = current == '/' ? '\\' : current;
     }
 }
 

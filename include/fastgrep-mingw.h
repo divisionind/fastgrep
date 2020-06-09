@@ -24,11 +24,12 @@
 
 #define realpath(x, y) x
 //#define realpath(x, y) _fullpath(x, y, _MAX_PATH) // fullpath only returned current working directory for some reason
-#define sysconf(x) getprocessors()
+#define sysconf(x) mingw_getprocessors()
 
 ssize_t getline(char** lineptr, size_t *n, FILE *stream);
-long getprocessors();
-void enable_color();
+long mingw_getprocessors();
+void mingw_enable_color();
+void mingw_fix_path(char* path);
 
 #endif
 

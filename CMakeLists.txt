@@ -57,17 +57,19 @@ set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
 set(CPACK_PACKAGE_CONTACT "Andrew Howard <ahoward@divisionind.com>")
 set(CPACK_STRIP_FILES 1)
 
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 install(TARGETS fastgrep DESTINATION bin COMPONENT core)
-install(FILES "$ENV{MINGW_DIR}/bin/libwinpthread-1.dll" DESTINATION bin COMPONENT core)
-# only package with windows installers or zips
-#install(FILES LICENSE DESTINATION .)
+if(MINGW)
+    install(FILES "$ENV{MINGW_DIR}/bin/libwinpthread-1.dll" DESTINATION bin COMPONENT core)
+    install(FILES LICENSE DESTINATION . COMPONENT core)
+    include(CPackNSISConfig)
+else()
+    include(CPackDEBConfig)
+endif()
 
 # /usr/share/doc/{package_name}/copyright | needs proper formatting
 #install(FILES LICENSE DESTINATION share/doc)
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-# todo only include what is currently being built
-#include(CPackDEBConfig)
-include(CPackNSISConfig)
 #include(CPackZIPConfig)
 include(CPack)

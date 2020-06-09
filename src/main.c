@@ -202,6 +202,10 @@ static void* task_search(arguments_t* context) {
                         previewOutput = "\n";
                     }
 
+                    #ifdef __MINGW32__
+                    mingw_fix_path(filename);
+                    #endif
+
                     printf(outputFormat, filename + context->directoryTrim, lineN, previewOutput);
                     sb_free(sb);
                 }
@@ -240,7 +244,7 @@ int main(int argc, char** argv) {
     args.previewBounds = 15;
 
     #ifdef __MINGW32__
-    enable_color();
+    mingw_enable_color();
     #endif
 
     argp_parse(&arg_parser, argc, argv, 0, 0, &args);
