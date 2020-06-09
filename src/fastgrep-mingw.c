@@ -78,12 +78,4 @@ long getprocessors() {
     return info.dwNumberOfProcessors;
 }
 
-error_t argp_parse(const struct argp* pargp, int argc, char** argv, unsigned flags, int* arg_index, void* input) {
-    return 0; // TODO
-}
-
-void argp_usage(const struct argp_state *state) {
-    // TODO
-}
-
 #endif

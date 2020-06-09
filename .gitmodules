@@ -1,0 +1,3 @@
+[submodule "libargp-mingw"]
+	path = libargp-mingw
+	url = https://github.com/divisionind/libargp-mingw
