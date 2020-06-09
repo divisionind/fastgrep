@@ -28,7 +28,7 @@ sudo sh get_fastgrep.sh
 ```
 
 ##### Installing from source - Linux
-1. Clone repo `git clone https://github.com/divisionind/fastgrep.git`
+1. Clone repo `git clone --recursive https://github.com/divisionind/fastgrep.git`
 2. Enter directory `cd fastgrep`
 3. Build locally and install `sudo sh install.sh`
 
