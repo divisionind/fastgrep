@@ -29,7 +29,7 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 set(PROJECT_VENDOR "Division Industries LLC")
 
 if(MINGW)
-    message("MINGW build detected, using proper argp port")
+    message("MINGW build detected, using argp port https://github.com/divisionind/libargp-mingw")
     include_directories(libargp-mingw/src)
     file(GLOB_RECURSE MINGW_SOURCES ${PROJECT_SOURCE_DIR}/libargp-mingw/src/*.*)
     list(APPEND MINGW_SOURCES include/fastgrep-mingw.h src/fastgrep-mingw.c)
@@ -42,15 +42,9 @@ include_directories(src include)
 add_executable(fastgrep src/main.c src/strfifo.c include/strfifo.h src/stringbuilder.c include/stringbuilder.h ${MINGW_SOURCES})
 target_link_libraries(fastgrep pthread)
 
-if(CYGWIN)
-    message("CYGWIN build detected, dynamically linking to argp")
-    target_link_libraries(fastgrep argp)
-endif()
-
 add_custom_target(PACKAGE_ALL COMMAND cpack WORKING_DIRECTORY .)
 
-# packaging info
-
+# === PACKAGING INFO ===
 # common vars
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_DESCRIPTION ${PROJECT_DESCRIPTION})
@@ -65,8 +59,6 @@ set(CPACK_STRIP_FILES 1)
 
 install(TARGETS fastgrep DESTINATION bin COMPONENT core)
 install(FILES "$ENV{MINGW_DIR}/bin/libwinpthread-1.dll" DESTINATION bin COMPONENT core)
-#install(FILES "$ENV{CYGWIN_DIR}/bin/cygwin1.dll" DESTINATION bin COMPONENT core)
-#install(FILES "$ENV{CYGWIN_DIR}/bin/cygargp-0.dll" DESTINATION bin COMPONENT core)
 # only package with windows installers or zips
 #install(FILES LICENSE DESTINATION .)
 

@@ -44,8 +44,6 @@
 #define AFLAG_USE_COLOR     (1u<<1u)
 #define AFLAG_PREVIEW_MATCH (1u)
 
-#define CYGWIN_PREFIX "/cygdrive/"
-
 typedef struct {
     char* query;
     int fifoSize;
@@ -126,24 +124,6 @@ static error_t parse_opt(int key, char* in, struct argp_state* state) {
 static struct argp arg_parser = {options, parse_opt, program_usage, program_desc};
 sfifo_t fifo;
 
-#ifdef __CYGWIN__
-static void fix_cygwin_path(char* path) {
-    if (strncmp(CYGWIN_PREFIX, path, STR_LEN(CYGWIN_PREFIX)) == 0) {
-        // starts with cygwin prefix
-
-        path[0] = *(path + STR_LEN(CYGWIN_PREFIX)) - 0x20; // drive letter
-        path[1] = ':';
-        char current;
-        int write = 2;
-        for (int read = STR_LEN(CYGWIN_PREFIX) + 1; (current = path[read]) != '\0'; read++, write++) {
-            path[write] = current == '/' ? '\\' : current;
-        }
-
-        path[write] = 0;
-    }
-}
-#endif
-
 static void* task_search(arguments_t* context) {
     const char* query = context->query;
     char filename[PATH_MAX];
@@ -221,11 +201,6 @@ static void* task_search(arguments_t* context) {
                     } else {
                         previewOutput = "\n";
                     }
-
-                    #ifdef __CYGWIN__
-                    if (context->directoryTrim == 0)
-                            fix_cygwin_path(filename);
-                    #endif
 
                     printf(outputFormat, filename + context->directoryTrim, lineN, previewOutput);
                     sb_free(sb);
