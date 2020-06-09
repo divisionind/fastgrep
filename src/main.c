@@ -264,6 +264,10 @@ int main(int argc, char** argv) {
     args.flags         = AFLAG_PREVIEW_MATCH | AFLAG_USE_COLOR;
     args.previewBounds = 15;
 
+    #ifdef __MINGW32__
+    enable_color();
+    #endif
+
     argp_parse(&arg_parser, argc, argv, 0, 0, &args);
 
     // resolve directory

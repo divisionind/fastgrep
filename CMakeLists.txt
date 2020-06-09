@@ -64,6 +64,7 @@ set(CPACK_PACKAGE_CONTACT "Andrew Howard <ahoward@divisionind.com>")
 set(CPACK_STRIP_FILES 1)
 
 install(TARGETS fastgrep DESTINATION bin COMPONENT core)
+install(FILES "$ENV{MINGW_DIR}/bin/libwinpthread-1.dll" DESTINATION bin COMPONENT core)
 #install(FILES "$ENV{CYGWIN_DIR}/bin/cygwin1.dll" DESTINATION bin COMPONENT core)
 #install(FILES "$ENV{CYGWIN_DIR}/bin/cygargp-0.dll" DESTINATION bin COMPONENT core)
 # only package with windows installers or zips
