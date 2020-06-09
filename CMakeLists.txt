@@ -34,6 +34,7 @@ add_executable(fastgrep src/main.c src/strfifo.c include/strfifo.h src/stringbui
 target_link_libraries(fastgrep pthread)
 
 if(CYGWIN)
+    message("CYGWIN build detected, dynamically linking to argp")
     target_link_libraries(fastgrep argp)
 endif()
 

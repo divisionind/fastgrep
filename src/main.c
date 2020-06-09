@@ -144,8 +144,7 @@ static void fix_cygwin_path(char* path) {
 }
 #endif
 
-static void* task_search(void* arg) {
-    arguments_t * context = arg;
+static void* task_search(arguments_t* context) {
     const char* query = context->query;
     char filename[PATH_MAX];
 
@@ -292,7 +291,7 @@ int main(int argc, char** argv) {
     // init threads
     pthread_t* threads = malloc(sizeof(pthread_t) * args.threads);
     for (int i = 0; i < args.threads; i++) {
-        pthread_create(&threads[i], NULL, task_search, &args);
+        pthread_create(&threads[i], NULL, (void *(*)(void *)) task_search, &args);
     }
 
     // iterate files and send them to the fifo
