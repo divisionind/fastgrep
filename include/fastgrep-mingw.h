@@ -22,10 +22,11 @@
 
 #include "argp.h"
 
-#define realpath(x, y) _fullpath(x, y, _MAX_PATH)
+#define realpath(x, y) x
+//#define realpath(x, y) _fullpath(x, y, _MAX_PATH) // fullpath only returned current working directory for some reason
 #define sysconf(x) getprocessors()
 
-size_t getline(char** lineptr, size_t *n, FILE *stream);
+ssize_t getline(char** lineptr, size_t *n, FILE *stream);
 long getprocessors();
 
 #endif

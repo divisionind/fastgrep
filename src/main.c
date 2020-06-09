@@ -267,10 +267,9 @@ int main(int argc, char** argv) {
     argp_parse(&arg_parser, argc, argv, 0, 0, &args);
 
     // resolve directory
-    char* oldDir = args.directory;
     args.directory = realpath(args.directory, NULL);
     if (args.directory == NULL) {
-        fprintf(stderr, "invalid directory: %s\n", oldDir);
+        fprintf(stderr, "invalid directory\n");
         return 1;
     }
 
