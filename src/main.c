@@ -70,7 +70,7 @@ static struct argp_option options[] = {
     {"directory",      'd', "\".\"",  0, "Directory to scan"},
     {"no-color",       'k', 0,        0, "Disables color in message printout"},
     {"no-preview",     'P', 0,        0, "Disables the previewing of match line. Note: This also disables color"},
-    {"extensions",     'e', "java,c", 0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
+    {"extensions",     'e', "ext,..", 0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
     {"preview-bounds", 'b', "15",     0, "Amount of text on each side of the result to display in the preview"},
     {"version",        'v', 0,        0, "Print program version"},
     {0}
@@ -270,7 +270,17 @@ static int task_load_file_entry(const char *filename, const struct stat *info, i
 
 /*
  * Create options for:
- * - ignore case / regex
+ * - ignore case / regex (impl through a comparator function in place of current check)
+ *
+ * TODO add:
+ * - replace match with alternative (maybe)
+ * - file entry loading into fifo from stdin <- !!MAJOR!!
+ * - logging / verbose mode (including file counting)
+ * - snapping previews (preview snaps to the closest space if within certain # chars, will let more whole words come into frame)
+ * - space ignoring previews (beginning and trailing spaces will be ignored in previews)
+ * - option to enable follow symlinks
+ * - safe-mallocs/reallocs which redirect to an error proc on fail
+ * - extensions filter for excluding certain file types (e.g. --include, --exclude) instead of --extensions
  */
 int main(int argc, char** argv) {
     arguments_t args;
