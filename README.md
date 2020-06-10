@@ -43,9 +43,9 @@ sudo sh get_fastgrep.sh
 2. Enter directory `cd fastgrep`
 3. Build locally and install `sudo sh install.sh`
 
+_NOTE: The install script assumes apt as the package manager. If you are running a different package manager, install
+the requirements and remove that section of the install script._
+
 ##### Windows
 1. Download the latest windows installer from the [releases page](https://github.com/divisionind/fastgrep/releases)
 2. Run the installer, make sure you select `Add fastgrep to the system PATH for all users`, complete installation
-
-_NOTE: The install script assumes apt as the package manager. If you are running a different package manager, install
-the requirements and remove that section of the install script._
