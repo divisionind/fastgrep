@@ -52,15 +52,15 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
     pos = 0;
     while (c != EOF) {
         if (pos + 1 >= *n) {
-            size_t new_size = *n + (*n >> 2);
-            if (new_size < 128) {
-                new_size = 128;
+            size_t newSize = *n + (*n >> 2);
+            if (newSize < 128) {
+                newSize = 128;
             }
-            char *newPtr = realloc(*lineptr, new_size);
+            char *newPtr = realloc(*lineptr, newSize);
             if (newPtr == NULL) {
                 return -1;
             }
-            *n = new_size;
+            *n = newSize;
             *lineptr = newPtr;
         }
 
