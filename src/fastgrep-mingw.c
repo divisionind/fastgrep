@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <stdint.h>
 
-// if typedef doesn't exist (msvc, blah)
 typedef intptr_t ssize_t;
 
 ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
@@ -57,12 +56,12 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
             if (new_size < 128) {
                 new_size = 128;
             }
-            char *new_ptr = realloc(*lineptr, new_size);
-            if (new_ptr == NULL) {
+            char *newPtr = realloc(*lineptr, new_size);
+            if (newPtr == NULL) {
                 return -1;
             }
             *n = new_size;
-            *lineptr = new_ptr;
+            *lineptr = newPtr;
         }
 
         ((unsigned char *) (*lineptr))[pos++] = c;
