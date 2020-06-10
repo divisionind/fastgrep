@@ -5,13 +5,24 @@ fastgrep - a faster "grep -r"
 A utility similar to `grep -r ...` but focused on raw speed and utilization of system resources. This tool
 is useful for quickly scanning large directories for files containing a specific string.
 
-This is mainly for fun as I already have a similar tool written in Java. I am interested to see how fast
-I can get this compared to that one. Right now (and ignoring jvm startup), they are around the same (maybe 
-this one is a little faster). I want to see if I can make it noticeable.
+The intro gif is fastgrep scanning the entire, un-indexed, `1.15.1 craftbukkit` sources on a Kali Linux install
+running on an 4-core laptop CPU (the `i7-8550U @ 1.8GHz`) for the string "createInventory". That is around 1 million
+lines of code searched in under 100ms. The same scan would take grep several minutes.
 
-The intro gif is fastgrep scanning the entire, un-indexed, 1.15.2 craftbukkit sources on a Debian WSL install
-running an i7-8700k for the string "createInventory". This functionality can be very useful for developing mods 
-on large codebases.
+```
+$ cd ~/craftbukkit-1.15.1-src
+$ cloc .
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+Java                          8099         200332           4926         959246
+-------------------------------------------------------------------------------
+SUM:                          8099         200332           4926         959246
+-------------------------------------------------------------------------------
+```
+
+This functionality can be very useful for developing or modding large, documented, codebases 
+(e.g. open-source or reverse engineered games, operating systems, etc.).
 
 ### IntelliJ IDEA Tool Integration
 For more info see [this](intellij_tool/README.md).
@@ -33,11 +44,8 @@ sudo sh get_fastgrep.sh
 3. Build locally and install `sudo sh install.sh`
 
 ##### Windows
-There is a portable cygwin build for windows. However, I have not made an install script at this time.
-If you really don't want to use WSL:
-1. Download the latest zip from the releases page
-2. Extract it somewhere
-3. *optional:* add that directory to your path
+1. Download the latest windows installer from the [releases page](https://github.com/divisionind/fastgrep/releases)
+2. Run the installer, make sure you select `Add fastgrep to the system PATH for all users`, complete installation
 
 _NOTE: The install script assumes apt as the package manager. If you are running a different package manager, install
 the requirements and remove that section of the install script._
