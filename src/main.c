@@ -53,6 +53,8 @@ typedef struct {
     char* directory;
     unsigned int flags;
     int previewBounds;
+    char** extensions;
+    int nExtensions;
 } arguments_t;
 
 const char* argp_program_bug_address  = "<https://github.com/divisionind/fastgrep/issues>";
@@ -61,16 +63,16 @@ static char program_desc[]            = "Searches for files recursively in a [-d
 static char program_usage[]           = "[QUERY]";
 
 static struct argp_option options[] = {
-    {"buffer-size",    's', "256",   0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
-    {"file-desc",      'f', "15",    0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
-    {"trim-paths",     'p', 0,       0, "Do NOT trim the file paths with the current dir"},
-    {"threads",        't', "N",     0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
-    {"directory",      'd', "\".\"", 0, "Directory to scan"},
-    {"no-color",       'k', 0,       0, "Disables color in message printout"},
-    {"no-preview",     'P', 0,       0, "Disables the previewing of match line. Note: This also disables color"},
-    {"extensions",     'e', 0,       0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
-    {"preview-bounds", 'b', "15",    0, "Amount of text on each side of the result to display in the preview"},
-    {"version",        'v', 0,       0, "Print program version"},
+    {"buffer-size",    's', "256",    0, "Number of file paths to allow as a buffer for consumption by the worker threads"},
+    {"file-desc",      'f', "15",     0, "Max open file desc (only for path traversal), the true usage is [N-(worker threads)]"},
+    {"trim-paths",     'p', 0,        0, "Do NOT trim the file paths with the current dir"},
+    {"threads",        't', "N",      0, "Number of threads to use for scanning, default is N = [(available processors) - 1]"},
+    {"directory",      'd', "\".\"",  0, "Directory to scan"},
+    {"no-color",       'k', 0,        0, "Disables color in message printout"},
+    {"no-preview",     'P', 0,        0, "Disables the previewing of match line. Note: This also disables color"},
+    {"extensions",     'e', "java,c", 0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
+    {"preview-bounds", 'b', "15",     0, "Amount of text on each side of the result to display in the preview"},
+    {"version",        'v', 0,        0, "Print program version"},
     {0}
 };
 
@@ -101,6 +103,24 @@ static error_t parse_opt(int key, char* in, struct argp_state* state) {
         case 'k':
             arg->flags &= ~AFLAG_USE_COLOR;
             break;
+        case 'e': {
+            int count = 1;
+            char current;
+            for (int i = 0; (current = in[i]) != '\0'; i++) {
+                if (current == ',') count++;
+            }
+
+            if (count) {
+                arg->extensions = malloc(sizeof(void*) * (arg->nExtensions = count));
+
+                char* str = strtok(in, ",");
+                for (int i = 0; str != NULL; i++) {
+                    arg->extensions[i] = str;
+                    str = strtok(NULL, ",");
+                }
+            }
+            break;
+        }
         case 'b':
             arg->previewBounds = atoi(in);
             break;
@@ -129,9 +149,31 @@ static void* task_search(arguments_t* context) {
     char filename[PATH_MAX];
 
     while (!(fifo.closed && fifo.storedBytes == 0)) {
+        // aquire file from fifo
         if (sfifo_get(&fifo, filename)) {
             continue;
         }
+
+        // verify extensions match specified before reading file
+        if (context->nExtensions) {
+            char* extensionIndex = strrchr(filename, '.');
+            if (!extensionIndex) continue;
+
+            extensionIndex++;
+            int i = 0;
+            do {
+                if (!strcmp(extensionIndex, context->extensions[i])) {
+                    // one of the ext matched, continue
+                    goto search_file;
+                }
+
+                i++;
+            } while (i < context->nExtensions);
+
+            continue;
+        }
+
+        search_file: ;
         FILE* file = fopen(filename, "r");
         unsigned int lineN = 0;
         size_t lineBufferSize = 0;
@@ -229,8 +271,6 @@ static int task_load_file_entry(const char *filename, const struct stat *info, i
 /*
  * Create options for:
  * - ignore case / regex
- *
- * TODO create impl for --extensions option
  */
 int main(int argc, char** argv) {
     arguments_t args;
@@ -285,5 +325,6 @@ int main(int argc, char** argv) {
         pthread_join(threads[i], NULL);
     }
     sfifo_free(&fifo);
+    free(args.extensions);
     return 0;
 }
