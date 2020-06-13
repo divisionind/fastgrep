@@ -26,6 +26,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #ifndef __MINGW32__
 #include <argp.h>
@@ -41,6 +42,7 @@
 #define COLOR_HIGHLIGHT COLOR("95")
 #define STR_LEN(x)      (sizeof(x) - 1)
 
+#define AFLAG_FROM_STDIN    (1u<<2u)
 #define AFLAG_USE_COLOR     (1u<<1u)
 #define AFLAG_PREVIEW_MATCH (1u)
 
@@ -73,6 +75,7 @@ static struct argp_option options[] = {
     {"extensions",     'e', "ext,..", 0, "Only display results for files ending in the following. Separate extensions using a ',' and no spaces (e.g. \"java,txt,c\")"},
     {"preview-bounds", 'b', "15",     0, "Amount of text on each side of the result to display in the preview"},
     {"version",        'v', 0,        0, "Print program version"},
+    {"stdin",          'i', 0,        0, "Search files provided from stdin rather than a directory"},
     {0}
 };
 
@@ -102,6 +105,9 @@ static error_t parse_opt(int key, char* in, struct argp_state* state) {
             break;
         case 'k':
             arg->flags &= ~AFLAG_USE_COLOR;
+            break;
+        case 'i':
+            arg->flags |= AFLAG_FROM_STDIN;
             break;
         case 'e': {
             int count = 1;
@@ -274,7 +280,6 @@ static int task_load_file_entry(const char *filename, const struct stat *info, i
  *
  * TODO add:
  * - replace match with alternative (maybe)
- * - file entry loading into fifo from stdin <- !!MAJOR!!
  * - logging / verbose mode (including file counting)
  * - snapping previews (preview snaps to the closest space if within certain # chars, will let more whole words come into frame)
  * - space ignoring previews (beginning and trailing spaces will be ignored in previews)
@@ -327,7 +332,27 @@ int main(int argc, char** argv) {
     }
 
     // iterate files and send them to the fifo
-    nftw(args.directory, task_load_file_entry, args.maxFileDesc, FTW_PHYS); // max # open file descriptors, do not follow symlinks (todo maybe allow this? as an option)
+    if (args.flags & AFLAG_FROM_STDIN) {
+        // just ignore dir trim all together for now
+        args.directoryTrim = 0;
+
+        char* lineBuffer = NULL;
+        size_t lineBufferSize = 0;
+        ssize_t lineLen;
+
+        while ((lineLen = getline(&lineBuffer, &lineBufferSize, stdin)) != EOF) {
+            lineBuffer[lineLen - 1] = 0;
+
+            struct stat fstatus;
+            if (!stat(lineBuffer, &fstatus) && S_ISREG(fstatus.st_mode)) { // todo add symlinks later (if add follow symlinks opt)
+                while (sfifo_put(&fifo, lineBuffer));
+            }
+        }
+
+        free(lineBuffer);
+    } else {
+        nftw(args.directory, task_load_file_entry, args.maxFileDesc, FTW_PHYS); // max # open file descriptors, do not follow symlinks (todo maybe allow this? as an option)
+    }
 
     // cleanup
     sfifo_close(&fifo); // ensure it is closed before joining threads
