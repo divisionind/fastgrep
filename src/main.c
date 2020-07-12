@@ -286,6 +286,9 @@ static int task_load_file_entry(const char *filename, const struct stat *info, i
  * - option to enable follow symlinks
  * - safe-mallocs/reallocs which redirect to an error proc on fail
  * - extensions filter for excluding certain file types (e.g. --include, --exclude) instead of --extensions
+ *
+ * BIG: scan mode for strings not by line but by byte-sequence (for binary files)
+ *      (also add option to parse escapes in string input, e.g. \xAE)
  */
 int main(int argc, char** argv) {
     arguments_t args;
