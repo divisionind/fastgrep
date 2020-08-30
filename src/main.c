@@ -46,7 +46,7 @@
 #define AFLAG_USE_COLOR     (1u<<1u)
 #define AFLAG_PREVIEW_MATCH (1u)
 
-typedef struct {
+struct {
     char* query;
     int fifoSize;
     int maxFileDesc;
@@ -57,7 +57,7 @@ typedef struct {
     int previewBounds;
     char** extensions;
     int nExtensions;
-} arguments_t;
+} args;
 
 const char* argp_program_bug_address  = "<https://github.com/divisionind/fastgrep/issues>";
 static const char* program_version    = "fastgrep v" PROJECT_VERSION;
@@ -80,34 +80,33 @@ static struct argp_option options[] = {
 };
 
 static error_t parse_opt(int key, char* in, struct argp_state* state) {
-    arguments_t* arg = (arguments_t*) state->input;
     switch (key) {
         case 's':
-            arg->fifoSize = atoi(in);
+            args.fifoSize = atoi(in);
             break;
         case 'f':
-            arg->maxFileDesc = atoi(in);
+            args.maxFileDesc = atoi(in);
             break;
         case 'p':
-            arg->directoryTrim = 0;
+            args.directoryTrim = 0;
             break;
         case 't':
-            arg->threads = atol(in);
+            args.threads = atol(in);
             break;
         case 'd':
-            arg->directory = in;
+            args.directory = in;
             break;
         case 'v':
             printf("%s\n", program_version);
             exit(0);
         case 'P':
-            arg->flags &= ~AFLAG_PREVIEW_MATCH;
+            args.flags &= ~AFLAG_PREVIEW_MATCH;
             break;
         case 'k':
-            arg->flags &= ~AFLAG_USE_COLOR;
+            args.flags &= ~AFLAG_USE_COLOR;
             break;
         case 'i':
-            arg->flags |= AFLAG_FROM_STDIN;
+            args.flags |= AFLAG_FROM_STDIN;
             break;
         case 'e': {
             int count = 1;
@@ -117,25 +116,25 @@ static error_t parse_opt(int key, char* in, struct argp_state* state) {
             }
 
             if (count) {
-                arg->extensions = malloc(sizeof(void*) * (arg->nExtensions = count));
+                args.extensions = malloc(sizeof(void*) * (args.nExtensions = count));
 
                 char* str = strtok(in, ",");
                 for (int i = 0; str != NULL; i++) {
-                    arg->extensions[i] = str;
+                    args.extensions[i] = str;
                     str = strtok(NULL, ",");
                 }
             }
             break;
         }
         case 'b':
-            arg->previewBounds = atoi(in);
+            args.previewBounds = atoi(in);
             break;
         case ARGP_KEY_ARG:
             if (state->arg_num >= 1)
                 argp_usage(state);
             else
             if (state->arg_num == 0)
-                arg->query = in;
+                args.query = in;
             break;
         case ARGP_KEY_END:
             if (state->arg_num < 1)
@@ -150,8 +149,9 @@ static error_t parse_opt(int key, char* in, struct argp_state* state) {
 static struct argp arg_parser = {options, parse_opt, program_usage, program_desc};
 sfifo_t fifo;
 
-static void* task_search(arguments_t* context) {
-    const char* query = context->query;
+static void* task_search(void* context) {
+    (void) context;
+
     char filename[PATH_MAX];
 
     while (!(fifo.closed && fifo.storedBytes == 0)) {
@@ -161,20 +161,20 @@ static void* task_search(arguments_t* context) {
         }
 
         // verify extensions match specified before reading file
-        if (context->nExtensions) {
+        if (args.nExtensions) {
             char* extensionIndex = strrchr(filename, '.');
             if (!extensionIndex) continue;
 
             extensionIndex++;
             int i = 0;
             do {
-                if (!strcmp(extensionIndex, context->extensions[i])) {
+                if (!strcmp(extensionIndex, args.extensions[i])) {
                     // one of the ext matched, continue
                     goto search_file;
                 }
 
                 i++;
-            } while (i < context->nExtensions);
+            } while (i < args.nExtensions);
 
             continue;
         }
@@ -191,21 +191,21 @@ static void* task_search(arguments_t* context) {
                 lineN++;
 
                 char* matchStart;
-                if ((matchStart = strstr(lineBuffer, query)) != NULL) {
+                if ((matchStart = strstr(lineBuffer, args.query)) != NULL) {
                     // line contained the search param
                     stringbuilder_t* sb = NULL;       // dynamically allocated stringbuilder
                     char* previewOutput;              // start of actual string passed to printf
                     char* outputFormat = "%s:%i\t%s"; // format of the printf
 
-                    if (context->flags & AFLAG_PREVIEW_MATCH) {
+                    if (args.flags & AFLAG_PREVIEW_MATCH) {
                         // calculate preview bounds
                         int64_t startOffset, stopOffset;
-                        size_t queryLen = strlen(query);
+                        size_t queryLen = strlen(args.query);
 
                         startOffset = matchStart - lineBuffer;
                         stopOffset  = startOffset + queryLen;
-                        startOffset -= context->previewBounds;
-                        stopOffset  += context->previewBounds;
+                        startOffset -= args.previewBounds;
+                        stopOffset  += args.previewBounds;
                         if (startOffset < 0)
                             startOffset = 0;
 
@@ -220,7 +220,7 @@ static void* task_search(arguments_t* context) {
 
                         size_t previewLength = stopOffset - startOffset;
 
-                        if (context->flags & AFLAG_USE_COLOR) {
+                        if (args.flags & AFLAG_USE_COLOR) {
                             sb = sb_create(previewLength + 2 + STR_LEN(COLOR_HIGHLIGHT) + STR_LEN(RESET));
                             sb_append(sb, " ", 1);
 
@@ -254,7 +254,7 @@ static void* task_search(arguments_t* context) {
                     mingw_fix_path(filename);
                     #endif
 
-                    printf(outputFormat, filename + context->directoryTrim, lineN, previewOutput);
+                    printf(outputFormat, filename + args.directoryTrim, lineN, previewOutput);
                     sb_free(sb);
                 }
             }
@@ -291,8 +291,6 @@ static int task_load_file_entry(const char *filename, const struct stat *info, i
  *      (also add option to parse escapes in string input, e.g. \xAE)
  */
 int main(int argc, char** argv) {
-    arguments_t args;
-    memset(&args, 0, sizeof(args));
     args.fifoSize      = 256; // corresponds to ~1MB ram
     args.maxFileDesc   = 15;
     args.threads       = sysconf(_SC_NPROCESSORS_ONLN) - 1;
@@ -305,7 +303,7 @@ int main(int argc, char** argv) {
     mingw_enable_color();
     #endif
 
-    argp_parse(&arg_parser, argc, argv, 0, 0, &args);
+    argp_parse(&arg_parser, argc, argv, 0, 0, NULL);
 
     // resolve directory
     args.directory = realpath(args.directory, NULL);
@@ -331,7 +329,7 @@ int main(int argc, char** argv) {
     // init threads
     pthread_t* threads = malloc(sizeof(pthread_t) * args.threads);
     for (int i = 0; i < args.threads; i++) {
-        pthread_create(&threads[i], NULL, (void *(*)(void *)) task_search, &args);
+        pthread_create(&threads[i], NULL, task_search, &args);
     }
 
     // iterate files and send them to the fifo
