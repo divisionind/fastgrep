@@ -268,6 +268,9 @@ static void* task_search(void* context) {
 }
 
 static int task_load_file_entry(const char *filename, const struct stat *info, int flag, struct FTW *pathInfo) {
+    (void) info;
+    (void) pathInfo;
+
     if (flag == FTW_F) {
         while (sfifo_put(&fifo, filename));
     }
