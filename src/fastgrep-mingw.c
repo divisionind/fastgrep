@@ -98,7 +98,7 @@ void mingw_enable_color() {
     }
 }
 
-void mingw_fix_path(char* path) {
+void mingw_fix_path(char *path) {
     char current;
     int i;
 

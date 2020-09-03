@@ -14,10 +14,11 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-#ifndef FASTGREP_FASTGREP_MINGW_H
-#define FASTGREP_FASTGREP_MINGW_H
+#ifndef FASTGREP_MINGW_H
+#define FASTGREP_MINGW_H
 
 #ifdef __MINGW32__
+
 #include <stdio.h>
 
 #include "argp.h"
@@ -26,11 +27,14 @@
 //#define realpath(x, y) _fullpath(x, y, _MAX_PATH) // fullpath only returned current working directory for some reason
 #define sysconf(x) mingw_getprocessors()
 
-ssize_t getline(char** lineptr, size_t *n, FILE *stream);
+ssize_t getline(char **lineptr, size_t *n, FILE *stream);
+
 long mingw_getprocessors();
+
 void mingw_enable_color();
-void mingw_fix_path(char* path);
+
+void mingw_fix_path(char *path);
 
 #endif
 
-#endif //FASTGREP_FASTGREP_MINGW_H
+#endif //FASTGREP_MINGW_H

@@ -24,14 +24,16 @@ extern "C" {
 #include <stddef.h>
 
 typedef struct {
-    char* buffer;
-    size_t bufferSize;
+    char *buffer;
+    size_t buffer_size;
     size_t offset;
 } stringbuilder_t;
 
-stringbuilder_t* sb_create(size_t size);
-int sb_append(stringbuilder_t* sb, const char* content, size_t len);
-void sb_free(stringbuilder_t* sb);
+stringbuilder_t *sb_create(size_t size);
+
+int sb_append(stringbuilder_t *sb, const char *content, size_t len);
+
+void sb_free(stringbuilder_t *sb);
 
 #ifdef __cplusplus
 }

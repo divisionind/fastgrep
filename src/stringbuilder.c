@@ -19,8 +19,8 @@
 
 #include "stringbuilder.h"
 
-stringbuilder_t* sb_create(size_t size) {
-    stringbuilder_t* sb = malloc(sizeof(stringbuilder_t));
+stringbuilder_t *sb_create(size_t size) {
+    stringbuilder_t *sb = malloc(sizeof(stringbuilder_t));
     if (sb == NULL) return NULL;
 
     sb->buffer = malloc(size + 1);
@@ -29,18 +29,18 @@ stringbuilder_t* sb_create(size_t size) {
         return NULL;
     }
 
-    sb->bufferSize   = size;
-    sb->offset       = 0;
+    sb->buffer_size = size;
+    sb->offset = 0;
     sb->buffer[size] = 0;
 
     return sb;
 }
 
-int sb_append(stringbuilder_t* sb, const char* content, size_t len) {
+int sb_append(stringbuilder_t *sb, const char *content, size_t len) {
     size_t newOffset = sb->offset + len;
-    if (newOffset > sb->bufferSize) {
-        newOffset = sb->bufferSize;
-        len = sb->bufferSize - sb->offset;
+    if (newOffset > sb->buffer_size) {
+        newOffset = sb->buffer_size;
+        len = sb->buffer_size - sb->offset;
     }
 
     memcpy(sb->buffer + sb->offset, content, len);
@@ -48,7 +48,7 @@ int sb_append(stringbuilder_t* sb, const char* content, size_t len) {
     return 0;
 }
 
-void sb_free(stringbuilder_t* sb) {
+void sb_free(stringbuilder_t *sb) {
     if (sb != NULL) {
         free(sb->buffer);
         free(sb);

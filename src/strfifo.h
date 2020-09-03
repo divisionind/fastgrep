@@ -26,22 +26,26 @@ extern "C" {
 #include <pthread.h>
 
 typedef struct {
-    void* buffer;
-    size_t bufferSize;
-    size_t itemSize;
+    void *buffer;
+    size_t buffer_size;
+    size_t item_size;
     pthread_mutex_t mutex;
 
     volatile bool closed;
-    volatile size_t readOffset;
-    volatile size_t writeOffset;
-    volatile size_t storedBytes;
+    volatile size_t read_off;
+    volatile size_t write_off;
+    volatile size_t stored_bytes;
 } sfifo_t;
 
-int sfifo_create(sfifo_t* fifo, size_t count, size_t size);
-void sfifo_free(sfifo_t* fifo);
-void sfifo_close(sfifo_t* fifo);
-int sfifo_put(sfifo_t* fifo, const char* item);
-int sfifo_get(sfifo_t* fifo, char* item);
+int sfifo_create(sfifo_t *fifo, size_t count, size_t size);
+
+void sfifo_free(sfifo_t *fifo);
+
+void sfifo_close(sfifo_t *fifo);
+
+int sfifo_put(sfifo_t *fifo, const char *item);
+
+int sfifo_get(sfifo_t *fifo, char *item);
 
 #ifdef __cplusplus
 }

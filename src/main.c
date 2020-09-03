@@ -42,25 +42,25 @@
 #define COLOR_HIGHLIGHT COLOR("95")
 #define STR_LEN(x)      (sizeof(x) - 1)
 
-#define AFLAG_FROM_STDIN    (1u<<2u)
-#define AFLAG_USE_COLOR     (1u<<1u)
-#define AFLAG_PREVIEW_MATCH (1u)
+#define AFLAG_FROM_STDIN    (1<<2)
+#define AFLAG_USE_COLOR     (1<<1)
+#define AFLAG_PREVIEW_MATCH (1)
 
 struct {
-    char* query;
+    char *query;
     int fifoSize;
     int maxFileDesc;
     int directoryTrim;
     long threads;
-    char* directory;
+    char *directory;
     unsigned int flags;
     int previewBounds;
-    char** extensions;
+    char **extensions;
     int nExtensions;
 } args;
 
-const char* argp_program_bug_address  = "<https://github.com/divisionind/fastgrep/issues>";
-static const char* program_version    = "fastgrep v" PROJECT_VERSION;
+const char *argp_program_bug_address  = "<https://github.com/divisionind/fastgrep/issues>";
+static const char *program_version    = "fastgrep v" PROJECT_VERSION;
 static char program_desc[]            = "Searches for files recursively in a [-d directory] for the ASCII sequence [QUERY].";
 static char program_usage[]           = "[QUERY]";
 
@@ -79,7 +79,7 @@ static struct argp_option options[] = {
     {0}
 };
 
-static error_t parse_opt(int key, char* in, struct argp_state* state) {
+static error_t parse_opt(int key, char *in, struct argp_state *state) {
     switch (key) {
         case 's':
             args.fifoSize = atoi(in);
@@ -149,12 +149,12 @@ static error_t parse_opt(int key, char* in, struct argp_state* state) {
 static struct argp arg_parser = {options, parse_opt, program_usage, program_desc};
 sfifo_t fifo;
 
-static void* task_search(void* context) {
+static void *task_search(void *context) {
     (void) context;
 
     char filename[PATH_MAX];
 
-    while (!(fifo.closed && fifo.storedBytes == 0)) {
+    while (!(fifo.closed && fifo.stored_bytes == 0)) {
         // aquire file from fifo
         if (sfifo_get(&fifo, filename)) {
             continue;
@@ -293,7 +293,7 @@ static int task_load_file_entry(const char *filename, const struct stat *info, i
  * BIG: scan mode for strings not by line but by byte-sequence (for binary files)
  *      (also add option to parse escapes in string input, e.g. \xAE)
  */
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     args.fifoSize      = 256; // corresponds to ~1MB ram
     args.maxFileDesc   = 15;
     args.threads       = sysconf(_SC_NPROCESSORS_ONLN) - 1;
