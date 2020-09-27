@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
     // init threads
     pthread_t* threads = malloc(sizeof(pthread_t) * args.threads);
     for (int i = 0; i < args.threads; i++) {
-        pthread_create(&threads[i], NULL, task_search, &args);
+        pthread_create(&threads[i], NULL, task_search, NULL);
     }
 
     // iterate files and send them to the fifo
